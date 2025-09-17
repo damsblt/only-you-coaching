@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
         where.videoType = 'PROGRAMMES'
       }
 
-    // Filter by muscle group (region) for muscle groups videos
+    // Filter by muscle group (folder) for muscle groups videos
     if (muscleGroup && muscleGroup !== 'all') {
-      const regionMap: { [key: string]: string } = {
+      const muscleGroupMap: { [key: string]: string } = {
         'Abdos': 'abdos',
         'Bande': 'bande',
         'Biceps': 'biceps',
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
         'Triceps': 'triceps'
       }
       
-      if (regionMap[muscleGroup]) {
-        where.region = { in: [regionMap[muscleGroup]] }
+      if (muscleGroupMap[muscleGroup]) {
+        where.folder = { contains: `groupes-musculaires/${muscleGroupMap[muscleGroup]}` }
       }
     }
 

@@ -1,13 +1,23 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-// S3 Configuration
+// S3 Configuration with environment validation
+const awsRegion = process.env.AWS_REGION || 'eu-north-1'
+const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID
+const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+
+// Validate AWS credentials
+if (!awsAccessKeyId || !awsSecretAccessKey) {
+  console.warn('⚠️  AWS credentials not found. S3 operations will fail.')
+  console.warn('   Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your environment variables.')
+}
+
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'eu-north-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  region: awsRegion,
+  credentials: awsAccessKeyId && awsSecretAccessKey ? {
+    accessKeyId: awsAccessKeyId,
+    secretAccessKey: awsSecretAccessKey,
+  } : undefined,
 })
 
 // Use S3 Access Point instead of direct bucket
