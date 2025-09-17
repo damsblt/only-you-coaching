@@ -42,22 +42,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter by programme (region) for programmes videos
+    // Filter by programme (folder) for programmes videos
     if (programme && programme !== 'all') {
-      const programmeMap: { [key: string]: string } = {
-        'Abdos': 'abdos',
-        'Brule graisse': 'brule-graisse',
-        'Dos': 'dos',
-        'Haute intensité': 'haute-intensite',
-        'Pectoraux': 'pectoraux',
-        'Réhabilitation du dos': 'rehabilitation-dos',
-        'Spécial femme': 'special-femme',
-        'Spécial homme': 'special-homme'
-      }
-      
-      if (programmeMap[programme]) {
-        where.region = { in: [programmeMap[programme]] }
-      }
+      where.folder = { contains: `programmes-predefinis/${programme}` }
     }
 
     if (difficulty && difficulty !== 'all') {

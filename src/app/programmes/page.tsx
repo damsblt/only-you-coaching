@@ -50,7 +50,7 @@ export default function ProgrammesPage() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const difficulties = ["all", "BEGINNER", "INTERMEDIATE", "ADVANCED"]
-  const programmes = ["all", "Abdos", "Brule graisse", "Dos", "Haute intensité", "Pectoraux", "Réhabilitation du dos", "Spécial femme", "Spécial homme"]
+  const programmes = ["all", "abdos", "brule-graisse", "haute-intensite", "machine", "pectoraux", "rehabilitation-dos", "special-femme"]
 
   // Fetch videos from database
   useEffect(() => {
@@ -299,11 +299,23 @@ export default function ProgrammesPage() {
               onChange={(e) => setSelectedProgramme(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
-              {programmes.map((programme) => (
-                <option key={programme} value={programme}>
-                  {programme === "all" ? "Tous les programmes" : programme}
-                </option>
-              ))}
+              {programmes.map((programme) => {
+                const displayNames: { [key: string]: string } = {
+                  "all": "Tous les programmes",
+                  "abdos": "Abdos",
+                  "brule-graisse": "Brûle graisse",
+                  "haute-intensite": "Haute intensité",
+                  "machine": "Machine",
+                  "pectoraux": "Pectoraux",
+                  "rehabilitation-dos": "Réhabilitation du dos",
+                  "special-femme": "Spécial femme"
+                }
+                return (
+                  <option key={programme} value={programme}>
+                    {displayNames[programme] || programme}
+                  </option>
+                )
+              })}
             </select>
           </div>
         </div>
