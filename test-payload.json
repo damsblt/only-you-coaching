@@ -1,0 +1,11 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {"name": "only-you-coaching"},
+        "object": {"key": "Video/groupes-musculaires/abdos/test.mp4"}
+      }
+    }
+  ]
+}
+
