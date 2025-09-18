@@ -10,21 +10,20 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const videoType = searchParams.get('videoType')
 
-
     // Build filter conditions
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       isPublished: true
     }
 
-      // Filter by video type using the videoType column
-      if (videoType === 'muscle-groups') {
-        where.videoType = 'MUSCLE_GROUPS'
-      } else if (videoType === 'programmes') {
-        where.videoType = 'PROGRAMMES'
-      }
+    // Filter by video type using the videoType column
+    if (videoType === 'muscle-groups') {
+      where.videoType = 'MUSCLE_GROUPS'
+    } else if (videoType === 'programmes') {
+      where.videoType = 'PROGRAMMES'
+    }
 
-    // Filter by muscle group (folder) for muscle groups videos
+    // Filter by region (muscle group or programme category)
     if (muscleGroup && muscleGroup !== 'all') {
       const muscleGroupMap: { [key: string]: string } = {
         'Abdos': 'abdos',
@@ -38,13 +37,13 @@ export async function GET(request: NextRequest) {
       }
       
       if (muscleGroupMap[muscleGroup]) {
-        where.folder = { contains: `groupes-musculaires/${muscleGroupMap[muscleGroup]}` }
+        where.region = muscleGroupMap[muscleGroup]
       }
     }
 
-    // Filter by programme (folder) for programmes videos
+    // Filter by region for programmes
     if (programme && programme !== 'all') {
-      where.folder = { contains: `programmes-predefinis/${programme}` }
+      where.region = programme
     }
 
     if (difficulty && difficulty !== 'all') {
@@ -55,12 +54,14 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { muscleGroups: { has: search } }
+        { startingPosition: { contains: search, mode: 'insensitive' } },
+        { movement: { contains: search, mode: 'insensitive' } },
+        { theme: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    // Fetch videos from database
-    const videos = await prisma.video.findMany({
+    // Fetch videos from videos_new table
+    const videos = await prisma.videosNew.findMany({
       where,
       orderBy: { createdAt: 'desc' }
     })

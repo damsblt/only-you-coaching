@@ -96,9 +96,28 @@ function parseCategoryAndRegionFromKey(key) {
   return { category: 'General', region };
 }
 
+function extractRegionFromFolder(folder) {
+  if (!folder) return null;
+  
+  // Split by '/' and take the last part (region)
+  const parts = folder.split('/');
+  if (parts.length > 1) {
+    return parts[parts.length - 1]; // Last part after the last '/'
+  }
+  
+  // If no '/', return the folder as is
+  return folder;
+}
+
 function inferTitleFromKey(key) {
   const base = path.basename(key, '.mp4');
-  return decodeURIComponent(base).replace(/\+/g, ' ');
+  const decoded = decodeURIComponent(base).replace(/\+/g, ' ');
+  // Replace dashes/underscores with spaces and collapse multiple spaces
+  const spaced = decoded.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Lowercase all, then capitalize only the first letter (Unicode-safe)
+  const lower = spaced.toLocaleLowerCase('fr-FR');
+  const result = lower.replace(/^\p{L}/u, (m) => m.toLocaleUpperCase('fr-FR'));
+  return result;
 }
 
 function inferVideoTypeFromKey(key) {
@@ -121,6 +140,7 @@ exports.handler = async (event) => {
   // S3 Put event can contain multiple Records
   const records = event?.Records || [];
   const results = [];
+  try { console.log('Lambda start', { recordCount: records.length, region: REGION, bucket: BUCKET }); } catch (_) {}
 
   for (const rec of records) {
     const bucket = rec.s3?.bucket?.name || BUCKET;
@@ -137,13 +157,18 @@ exports.handler = async (event) => {
     const tmpThumb = path.join(os.tmpdir(), `${fileName}-${Date.now()}.jpg`);
 
     try {
+      console.log('STEP 1: GetObject', { bucket, key });
       const get = new GetObjectCommand({ Bucket: bucket, Key: key });
       const obj = await s3.send(get);
+      console.log('STEP 1: GetObject success, streaming to', tmpVideo);
       await streamToFile(obj.Body, tmpVideo);
 
+      console.log('STEP 2: ffmpeg captureMidFrame start');
       const { durationSeconds } = await captureMidFrame(tmpVideo, tmpThumb);
+      console.log('STEP 2: ffmpeg captureMidFrame done', { durationSeconds, tmpThumb });
 
       const body = fs.readFileSync(tmpThumb);
+      console.log('STEP 3: PutObject thumbnail', { bucket, thumbKey, size: body.length });
       await s3.send(new PutObjectCommand({
         Bucket: bucket,
         Key: thumbKey,
@@ -151,6 +176,7 @@ exports.handler = async (event) => {
         ContentType: 'image/jpeg',
         Metadata: { 'generated-by': 'lambda-auto-thumbnail' },
       }));
+      console.log('STEP 3: PutObject thumbnail success');
 
       const videoUrl = `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`;
       const thumbnailUrl = `https://${bucket}.s3.${REGION}.amazonaws.com/${thumbKey}`;
@@ -158,38 +184,36 @@ exports.handler = async (event) => {
       const { category, region } = parseCategoryAndRegionFromKey(key);
       const title = inferTitleFromKey(key);
       const videoType = inferVideoTypeFromKey(key);
+      const folder = path.dirname(key).replace(/^Video\//, '') || null;
+      const extractedRegion = extractRegionFromFolder(folder);
 
       const insertPayload = {
         id: crypto.randomUUID(),
         title,
-        description: null,
-        detailedDescription: null,
         thumbnail: thumbnailUrl,
         videoUrl,
         duration: durationSeconds || 120,
         difficulty: 'INTERMEDIATE',
         category,
-        region,
-        muscleGroups: region ? [region] : [],
-        startingPosition: null,
-        movement: null,
-        intensity: null,
-        theme: null,
-        series: null,
-        constraints: null,
-        tags: [category, region].filter(Boolean),
+        region: extractedRegion, // Extract region from folder path
         isPublished: true,
-        folder: path.dirname(key).replace(/^Video\//, '') || null,
+        folder,
         videoType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('videos').insert(insertPayload);
-      if (error) throw new Error(`Supabase insert failed: ${error.message}`);
+      console.log('STEP 4: Supabase insert start', { title, folder: insertPayload.folder, region: insertPayload.region, videoType });
+      const { error } = await supabase.from('videos_new').insert(insertPayload);
+      if (error) {
+        console.error('STEP 4: Supabase insert error', error);
+        throw new Error(`Supabase insert failed: ${error.message}`);
+      }
+      console.log('STEP 4: Supabase insert success');
 
       results.push({ key, success: true, thumbnailKey: thumbKey });
     } catch (err) {
+      console.error('PROCESS ERROR', { key, message: err?.message, stack: err?.stack });
       results.push({ key, success: false, error: err.message });
     } finally {
       try { fs.unlinkSync(tmpVideo); } catch (_) {}

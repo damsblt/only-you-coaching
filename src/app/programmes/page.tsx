@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Search, Filter, Play, Clock, Star, Grid, List, ArrowLeft, ArrowRight } from "lucide-react"
 import EnhancedVideoCard from "@/components/video/EnhancedVideoCard"
-import EnhancedVideoPlayer from "@/components/video/EnhancedVideoPlayer"
+import SimpleVideoPlayer from "@/components/video/SimpleVideoPlayer"
 import { Section } from "@/components/ui/Section"
 import { Button } from "@/components/ui/Button"
 import { getVideoPositioning, getResponsiveVideoStyles, VideoPositioning } from '@/lib/video-positioning'
@@ -50,7 +50,7 @@ export default function ProgrammesPage() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const difficulties = ["all", "BEGINNER", "INTERMEDIATE", "ADVANCED"]
-  const programmes = ["all", "abdos", "brule-graisse", "haute-intensite", "machine", "pectoraux", "rehabilitation-dos", "special-femme"]
+  const programmes = ["all", "abdos", "brule-graisse", "haute-intensite", "machine", "pectoraux", "rehabilitation-dos", "special-femme", "cuisses-abdos-fessiers", "dos-abdos", "femmes", "homme", "jambes", "cuisses-abdos"]
 
   // Fetch videos from database
   useEffect(() => {
@@ -215,7 +215,7 @@ export default function ProgrammesPage() {
 
   if (selectedVideo) {
     return (
-        <EnhancedVideoPlayer
+        <SimpleVideoPlayer
           video={selectedVideo}
           onClose={handleClosePlayer}
         />
@@ -308,7 +308,13 @@ export default function ProgrammesPage() {
                   "machine": "Machine",
                   "pectoraux": "Pectoraux",
                   "rehabilitation-dos": "Réhabilitation du dos",
-                  "special-femme": "Spécial femme"
+                  "special-femme": "Spécial femme",
+                  "cuisses-abdos-fessiers": "Cuisses, Abdos, Fessiers",
+                  "dos-abdos": "Dos & Abdos",
+                  "femmes": "Femmes",
+                  "homme": "Homme",
+                  "jambes": "Jambes",
+                  "cuisses-abdos": "Cuisses & Abdos"
                 }
                 return (
                   <option key={programme} value={programme}>

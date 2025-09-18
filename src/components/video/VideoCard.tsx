@@ -1,8 +1,8 @@
 "use client"
 
-import { Play, Clock, Heart, Plus } from "lucide-react"
+import { Play, Heart, Plus } from "lucide-react"
 import { Video } from "@/types"
-import { formatDuration, getDifficultyColor, getDifficultyLabel } from "@/lib/utils"
+import { getDifficultyColor, getDifficultyLabel } from "@/lib/utils"
 
 interface VideoCardProps {
   video: Video
@@ -16,11 +16,11 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
       onClick={onClick}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-neutral-200 overflow-hidden">
+      <div className="relative aspect-video bg-neutral-200 overflow-hidden leading-none text-[0]">
         <img
           src={video.thumbnail || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"}
           alt={video.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="block w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         
         {/* Play Button Overlay */}
@@ -30,11 +30,7 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
           </div>
         </div>
 
-        {/* Duration Badge */}
-        <div className="absolute bottom-3 right-3 bg-accent-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 curved-button flex items-center">
-          <Clock className="w-3 h-3 mr-1" />
-          {formatDuration(video.duration)}
-        </div>
+        {/* Duration Badge removed per request */}
 
         {/* Difficulty Badge */}
         <div className={`absolute top-3 left-3 px-3 py-1.5 curved-button text-xs font-medium bg-white/90 backdrop-blur-sm ${getDifficultyColor(video.difficulty)}`}>

@@ -5,7 +5,8 @@ import { Search, Filter, Play, Clock, Star, Grid, List, ArrowLeft, ArrowRight } 
 import EnhancedVideoCard from "@/components/video/EnhancedVideoCard"
 import { Section } from "@/components/ui/Section"
 import { Button } from "@/components/ui/Button"
-import EnhancedVideoPlayer from "@/components/video/EnhancedVideoPlayer"
+import SimpleVideoPlayer from "@/components/video/SimpleVideoPlayer"
+import { useVideos } from "@/hooks/useVideos"
 import { getVideoPositioning, getResponsiveVideoStyles, VideoPositioning } from '@/lib/video-positioning'
 
 interface Video {
@@ -37,8 +38,6 @@ export default function VideosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all")
-  const [videos, setVideos] = useState<Video[]>([])
-  const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid')
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [isScrolling, setIsScrolling] = useState(false)
@@ -49,36 +48,17 @@ export default function VideosPage() {
   const [loadingVideoId, setLoadingVideoId] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Use the useVideos hook to fetch data
+  const { videos, isLoading: loading, error } = useVideos({
+    muscleGroup: selectedMuscleGroup,
+    difficulty: selectedDifficulty,
+    search: searchTerm,
+    videoType: 'muscle-groups'
+  })
+
   const difficulties = ["all", "BEGINNER", "INTERMEDIATE", "ADVANCED"]
   const muscleGroups = ["all", "Abdos", "Bande", "Biceps", "Cardio", "Dos", "Fessiers et jambes", "Streching", "Triceps"]
 
-  // Fetch videos from database
-  useEffect(() => {
-    async function fetchVideos() {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        if (selectedMuscleGroup !== 'all') params.append('muscleGroup', selectedMuscleGroup)
-        if (selectedDifficulty !== 'all') params.append('difficulty', selectedDifficulty)
-        if (searchTerm) params.append('search', searchTerm)
-        params.append('videoType', 'muscle-groups') // Filter for muscle groups videos
-
-        const response = await fetch(`/api/videos?${params.toString()}`)
-        if (response.ok) {
-          const data = await response.json()
-          setVideos(data)
-        } else {
-          console.error('Failed to fetch videos')
-        }
-      } catch (error) {
-        console.error('Error fetching videos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchVideos()
-  }, [selectedMuscleGroup, selectedDifficulty, searchTerm])
 
   const filteredVideos = videos
 
@@ -587,9 +567,9 @@ export default function VideosPage() {
           </div>
         )}
 
-        {/* Enhanced Video Player Modal */}
+        {/* Simple Video Player Modal */}
         {selectedVideo && (
-          <EnhancedVideoPlayer
+          <SimpleVideoPlayer
             video={selectedVideo}
             onClose={() => setSelectedVideo(null)}
           />

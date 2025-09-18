@@ -93,6 +93,33 @@ model Video {
   @@map("videos")
 }
 
+model VideosNew {
+  id                  String         @id @default(cuid())
+  title               String
+  description         String?
+  thumbnail           String?
+  videoUrl            String
+  duration            Int
+  difficulty          Difficulty
+  category            String
+  region              String?
+  muscleGroups        String[]
+  startingPosition    String?
+  movement            String?
+  intensity           String?
+  theme               String?
+  series              String?
+  constraints         String?
+  tags                String[]
+  isPublished         Boolean        @default(false)
+  videoType           VideoType      @default(MUSCLE_GROUPS)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  folder              String?
+
+  @@map("videos_new")
+}
+
 model Audio {
   id            String         @id @default(cuid())
   title         String

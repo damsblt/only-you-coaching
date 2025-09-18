@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // S3 Configuration with environment validation
@@ -117,4 +117,18 @@ export function getPublicUrl(key: string): string {
   // Use direct S3 URL since videos are now publicly accessible
   // The key is already properly encoded, just use it as is
   return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com/${key}`
+}
+
+// Check if an object exists in S3 (HEAD request)
+export async function objectExistsInS3(key: string): Promise<boolean> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    })
+    await s3Client.send(command)
+    return true
+  } catch (error) {
+    return false
+  }
 }
