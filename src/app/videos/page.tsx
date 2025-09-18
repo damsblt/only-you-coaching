@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react"
 import { Search, Filter, Play, Clock, Star, Grid, List, ArrowLeft, ArrowRight } from "lucide-react"
 import EnhancedVideoCard from "@/components/video/EnhancedVideoCard"
-import VideoListingCard from "@/components/video/VideoListingCard"
-import MobileVideoPlayer from "@/components/video/MobileVideoPlayer"
+import ComputerStreamPlayer from "@/components/video/ComputerStreamPlayer"
+import MobileStreamPlayer from "@/components/video/MobileStreamPlayer"
+import ListingPlayer from "@/components/video/ListingPlayer"
 import { Section } from "@/components/ui/Section"
 import { Button } from "@/components/ui/Button"
 import SimpleVideoPlayer from "@/components/video/SimpleVideoPlayer"
@@ -264,7 +265,7 @@ export default function VideosPage() {
   if (viewMode === 'mobile') {
     return (
       <div className="h-screen w-screen bg-black relative overflow-hidden">
-        <MobileVideoPlayer
+        <MobileStreamPlayer
           video={filteredVideos[currentVideoIndex]}
           onClose={() => setViewMode('grid')}
           onNext={currentVideoIndex < filteredVideos.length - 1 ? goToNext : undefined}
@@ -278,8 +279,26 @@ export default function VideosPage() {
     )
   }
 
-  // Feed mode layout
+  // Feed mode layout - Use ComputerStreamPlayer for desktop
   if (viewMode === 'feed') {
+    return (
+      <div className="h-screen w-screen bg-black relative overflow-hidden hide-app-chrome" style={{ position: 'fixed', top: 0, left: 0 }}>
+        <ComputerStreamPlayer
+          video={filteredVideos[currentVideoIndex]}
+          onClose={() => setViewMode('grid')}
+          onNext={currentVideoIndex < filteredVideos.length - 1 ? goToNext : undefined}
+          onPrevious={currentVideoIndex > 0 ? goToPrevious : undefined}
+          currentIndex={currentVideoIndex}
+          totalVideos={filteredVideos.length}
+          autoPlay={true}
+          muted={false}
+        />
+      </div>
+    )
+  }
+
+  // Legacy feed mode layout (keeping as fallback)
+  if (viewMode === 'legacy-feed') {
     return (
       <div className="h-screen w-screen bg-black relative overflow-hidden hide-app-chrome" style={{ position: 'fixed', top: 0, left: 0 }}>
         {/* Header */}
@@ -596,21 +615,21 @@ export default function VideosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredVideos.map((video) => (
-              <VideoListingCard
+              <EnhancedVideoCard
                 key={video.id}
                 video={video}
                 onPlay={() => setSelectedVideo(video)}
-                variant={isMobile ? 'mobile' : 'grid'}
               />
             ))}
           </div>
         )}
 
-        {/* Simple Video Player Modal */}
+        {/* Enhanced Video Player Modal */}
         {selectedVideo && (
-          <SimpleVideoPlayer
+          <ListingPlayer
             video={selectedVideo}
             onClose={() => setSelectedVideo(null)}
+            variant="modal"
           />
         )}
       </div>
