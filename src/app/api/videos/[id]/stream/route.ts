@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPublicUrl, getSignedVideoUrl, objectExistsInS3 } from '@/lib/s3'
+// S3 helpers not needed with direct redirect
+// import { getPublicUrl, getSignedVideoUrl, objectExistsInS3 } from '@/lib/s3'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: videoId } = await params
+    const { id: videoId } = params
     console.log('[stream] incoming id:', videoId)
 
     // Get video from database via Supabase (server-side)
