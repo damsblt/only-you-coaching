@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPublicUrl, getSignedVideoUrl, objectExistsInS3 } from '@/lib/s3'
-import { prisma } from '@/lib/prisma'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(
   request: NextRequest,
@@ -9,10 +9,24 @@ export async function GET(
   try {
     const { id: videoId } = await params
 
-    // Get video from database
-    const video = await prisma.videosNew.findUnique({
-      where: { id: videoId }
+    // Get video from database via Supabase (server-side)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ error: 'Missing Supabase envs' }, { status: 500 })
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false }
     })
+    const { data: video, error } = await supabase
+      .from('videos_new')
+      .select('*')
+      .eq('id', videoId)
+      .single()
+    if (error) {
+      console.error('Supabase video fetch error:', error)
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+    }
 
     if (!video) {
       return NextResponse.json(

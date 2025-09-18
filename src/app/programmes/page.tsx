@@ -450,7 +450,7 @@ export default function ProgrammesPage() {
                     </div>
                     {video.muscleGroups && video.muscleGroups.length > 0 && (
                       <div className="flex items-center space-x-1">
-                        <span>{video.muscleGroups.join(', ')}</span>
+                        <span>{Array.isArray(video.muscleGroups) ? video.muscleGroups.join(', ') : ''}</span>
                       </div>
                     )}
                   </div>

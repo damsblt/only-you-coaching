@@ -81,7 +81,8 @@ export function getVideoPositioning(video: {
   category: string
   muscleGroups: string[]
 }): VideoPositioning {
-  const text = `${video.title} ${video.description} ${video.category} ${video.muscleGroups.join(' ')}`.toLowerCase()
+  const groups = Array.isArray(video.muscleGroups) ? video.muscleGroups.join(' ') : ''
+  const text = `${video.title} ${video.description} ${video.category} ${groups}`.toLowerCase()
   
   // Find matching exercise type
   for (const [exerciseType, keywords] of Object.entries(EXERCISE_KEYWORDS)) {
