@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { createClient } from '@supabase/supabase-js'
 import { Search, Filter, Play, Clock, Star, Grid, List, ArrowLeft, ArrowRight } from "lucide-react"
 import EnhancedVideoCard from "@/components/video/EnhancedVideoCard"
 import SimpleVideoPlayer from "@/components/video/SimpleVideoPlayer"
@@ -52,26 +53,47 @@ export default function ProgrammesPage() {
   const difficulties = ["all", "BEGINNER", "INTERMEDIATE", "ADVANCED"]
   const programmes = ["all", "abdos", "brule-graisse", "haute-intensite", "machine", "pectoraux", "rehabilitation-dos", "special-femme", "cuisses-abdos-fessiers", "dos-abdos", "femmes", "homme", "jambes", "cuisses-abdos"]
 
-  // Fetch videos from database
+  // Fetch videos from Supabase directly on client (PROGRAMMES)
   useEffect(() => {
     async function fetchVideos() {
       try {
         setLoading(true)
-        const params = new URLSearchParams()
-        if (selectedProgramme !== 'all') params.append('programme', selectedProgramme)
-        if (selectedDifficulty !== 'all') params.append('difficulty', selectedDifficulty)
-        if (searchTerm) params.append('search', searchTerm)
-        params.append('videoType', 'programmes') // Filter for programmes videos
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-        const response = await fetch(`/api/videos?${params.toString()}`)
-        if (response.ok) {
-          const data = await response.json()
-          setVideos(data)
+        let query = supabase.from('videos_new').select('*').order('createdAt', { ascending: false })
+        query = query.eq('isPublished', true).eq('videoType', 'PROGRAMMES')
+
+        if (selectedProgramme && selectedProgramme !== 'all') {
+          query = query.eq('region', selectedProgramme)
+        }
+
+        if (selectedDifficulty && selectedDifficulty !== 'all') {
+          query = query.eq('difficulty', selectedDifficulty)
+        }
+
+        if (searchTerm) {
+          const ilike = (col: string) => `${col}.ilike.%${searchTerm}%`
+          query = query.or([
+            ilike('title'),
+            ilike('description'),
+            ilike('startingPosition'),
+            ilike('movement'),
+            ilike('theme')
+          ].join(','))
+        }
+
+        const { data, error } = await query.limit(100)
+        if (error) {
+          console.error('Supabase programmes fetch error:', error)
+          setVideos([])
         } else {
-          console.error('Failed to fetch videos')
+          setVideos(data || [])
         }
       } catch (error) {
-        console.error('Error fetching videos:', error)
+        console.error('Error fetching programmes videos:', error)
+        setVideos([])
       } finally {
         setLoading(false)
       }
