@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Search, Filter, Play, Clock, Star, Grid, List, ArrowLeft, ArrowRight } from "lucide-react"
 import EnhancedVideoCard from "@/components/video/EnhancedVideoCard"
+import VideoListingCard from "@/components/video/VideoListingCard"
+import MobileVideoPlayer from "@/components/video/MobileVideoPlayer"
 import { Section } from "@/components/ui/Section"
 import { Button } from "@/components/ui/Button"
 import SimpleVideoPlayer from "@/components/video/SimpleVideoPlayer"
@@ -38,7 +40,7 @@ export default function VideosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all")
-  const [viewMode, setViewMode] = useState<'grid' | 'feed'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'feed' | 'mobile'>('grid')
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [isScrolling, setIsScrolling] = useState(false)
   const [startY, setStartY] = useState(0)
@@ -46,6 +48,7 @@ export default function VideosPage() {
   const [screenWidth, setScreenWidth] = useState(0)
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
   const [loadingVideoId, setLoadingVideoId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Use the useVideos hook to fetch data
@@ -62,10 +65,11 @@ export default function VideosPage() {
 
   const filteredVideos = videos
 
-  // Track screen width for responsive positioning
+  // Track screen width and mobile detection
   useEffect(() => {
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth)
+      setIsMobile(window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
     }
     
     updateScreenWidth()
@@ -201,6 +205,11 @@ export default function VideosPage() {
         // Always reset video to beginning and play automatically
         videoElement.currentTime = 0
         
+        // For mobile, ensure video is muted for auto-play
+        if (isMobile) {
+          videoElement.muted = true
+        }
+        
         // Check if video is ready to play
         if (videoElement.readyState >= 2) { // HAVE_CURRENT_DATA
           const playPromise = videoElement.play()
@@ -231,7 +240,7 @@ export default function VideosPage() {
     }, 100)
 
     return () => clearTimeout(timer)
-  }, [currentVideoIndex, viewMode, filteredVideos])
+  }, [currentVideoIndex, viewMode, filteredVideos, isMobile])
 
   // Handle keyboard navigation for feed mode
   useEffect(() => {
@@ -250,6 +259,24 @@ export default function VideosPage() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentVideoIndex, filteredVideos.length, viewMode])
+
+  // Mobile view mode layout
+  if (viewMode === 'mobile') {
+    return (
+      <div className="h-screen w-screen bg-black relative overflow-hidden">
+        <MobileVideoPlayer
+          video={filteredVideos[currentVideoIndex]}
+          onClose={() => setViewMode('grid')}
+          onNext={currentVideoIndex < filteredVideos.length - 1 ? goToNext : undefined}
+          onPrevious={currentVideoIndex > 0 ? goToPrevious : undefined}
+          currentIndex={currentVideoIndex}
+          totalVideos={filteredVideos.length}
+          autoPlay={true}
+          muted={true}
+        />
+      </div>
+    )
+  }
 
   // Feed mode layout
   if (viewMode === 'feed') {
@@ -481,12 +508,23 @@ export default function VideosPage() {
               <button
                 onClick={() => setViewMode('feed')}
                 className={`p-2 rounded-lg transition-colors ${
-                  (viewMode as string) === 'feed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  viewMode === 'feed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                 }`}
                 title="Feed View"
               >
                 <List className="w-5 h-5" />
               </button>
+              {isMobile && (
+                <button
+                  onClick={() => setViewMode('mobile')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === 'mobile' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                  title="Mobile View"
+                >
+                  <Play className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -558,10 +596,11 @@ export default function VideosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredVideos.map((video) => (
-              <EnhancedVideoCard
+              <VideoListingCard
                 key={video.id}
                 video={video}
                 onPlay={() => setSelectedVideo(video)}
+                variant={isMobile ? 'mobile' : 'grid'}
               />
             ))}
           </div>
