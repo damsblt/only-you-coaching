@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
 
 interface Video {
   id: string
@@ -41,24 +42,61 @@ export function useVideos(options: UseVideosOptions = {}) {
         setIsLoading(true)
         setError(null)
 
-        const searchParams = new URLSearchParams()
-        
-        if (options.muscleGroup) searchParams.set('muscleGroup', options.muscleGroup)
-        if (options.programme) searchParams.set('programme', options.programme)
-        if (options.difficulty) searchParams.set('difficulty', options.difficulty)
-        if (options.search) searchParams.set('search', options.search)
-        if (options.videoType) searchParams.set('videoType', options.videoType)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-        const response = await fetch(`/api/videos?${searchParams.toString()}`)
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch videos: ${response.statusText}`)
+        let query = supabase.from('videos_new').select('*').order('createdAt', { ascending: false })
+
+        // Only published
+        query = query.eq('isPublished', true)
+
+        if (options.videoType === 'muscle-groups') {
+          query = query.eq('videoType', 'MUSCLE_GROUPS')
+        } else if (options.videoType === 'programmes') {
+          query = query.eq('videoType', 'PROGRAMMES')
         }
 
-        const data = await response.json()
-        setVideos(data)
+        if (options.muscleGroup && options.muscleGroup !== 'all') {
+          const muscleGroupMap: { [key: string]: string } = {
+            'Abdos': 'abdos',
+            'Bande': 'bande',
+            'Biceps': 'biceps',
+            'Cardio': 'cardio',
+            'Dos': 'dos',
+            'Fessiers et jambes': 'fessiers-jambes',
+            'Streching': 'streching',
+            'Triceps': 'triceps'
+          }
+          const region = muscleGroupMap[options.muscleGroup]
+          if (region) query = query.eq('region', region)
+        }
+
+        if (options.programme && options.programme !== 'all') {
+          query = query.eq('region', options.programme)
+        }
+
+        if (options.difficulty && options.difficulty !== 'all') {
+          query = query.eq('difficulty', options.difficulty)
+        }
+
+        if (options.search) {
+          const s = options.search
+          const ilike = (col: string) => `${col}.ilike.%${s}%`
+          query = query.or([
+            ilike('title'),
+            ilike('description'),
+            ilike('startingPosition'),
+            ilike('movement'),
+            ilike('theme')
+          ].join(','))
+        }
+
+        const { data, error } = await query.limit(100)
+        if (error) throw new Error(error.message)
+        setVideos(data || [])
       } catch (err) {
-        console.error('Error fetching videos:', err)
+        console.error('Error fetching videos (client supabase):', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch videos')
       } finally {
         setIsLoading(false)
