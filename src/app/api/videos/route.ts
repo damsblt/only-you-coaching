@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       auth: { persistSession: false }
     })
 
-    let query = supabase.from('videos_new').select('*').order('createdAt', { ascending: false })
+    let query = supabase.from('videos_new').select('*').order('title', { ascending: true })
 
     // Apply filters equivalent to Prisma where
     query = query.eq('isPublished', true)
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       ].join(','))
     }
 
-    const { data, error } = await query.limit(100)
+    const { data, error } = await query.limit(1000)
     if (error) {
       console.error('Supabase query error:', error)
       return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 })

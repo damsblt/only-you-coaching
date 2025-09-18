@@ -62,7 +62,7 @@ export default function ProgrammesPage() {
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
         const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-        let query = supabase.from('videos_new').select('*').order('createdAt', { ascending: false })
+        let query = supabase.from('videos_new').select('*').order('title', { ascending: true })
         query = query.eq('isPublished', true).eq('videoType', 'PROGRAMMES')
 
         if (selectedProgramme && selectedProgramme !== 'all') {
@@ -84,7 +84,7 @@ export default function ProgrammesPage() {
           ].join(','))
         }
 
-        const { data, error } = await query.limit(100)
+        const { data, error } = await query.limit(1000)
         if (error) {
           console.error('Supabase programmes fetch error:', error)
           setVideos([])
