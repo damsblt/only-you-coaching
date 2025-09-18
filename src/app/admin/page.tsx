@@ -153,14 +153,14 @@ export default function AdminPage() {
                         </p>
                         
                         <div className="flex flex-wrap gap-2">
-                          {video.muscleGroups.slice(0, 3).map((muscle, index) => (
+                          {(Array.isArray(video.muscleGroups) ? video.muscleGroups : []).slice(0, 3).map((muscle, index) => (
                             <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
                               {muscle}
                             </span>
                           ))}
-                          {video.muscleGroups.length > 3 && (
+                          {(Array.isArray(video.muscleGroups) ? video.muscleGroups : []).length > 3 && (
                             <span className="text-gray-500 text-xs">
-                              +{video.muscleGroups.length - 3} autres
+                              +{(Array.isArray(video.muscleGroups) ? video.muscleGroups : []).length - 3} autres
                             </span>
                           )}
                         </div>

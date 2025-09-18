@@ -9,6 +9,8 @@ export async function GET(
   try {
     const { id: videoId } = await params
 
+    console.log('[stream] incoming id:', videoId)
+
     // Get video from database via Supabase (server-side)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -18,13 +20,15 @@ export async function GET(
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false }
     })
+    // Fetch strictly from videos_new (single source of truth)
     const { data: video, error } = await supabase
       .from('videos_new')
       .select('*')
       .eq('id', videoId)
-      .single()
-    if (error) {
-      console.error('Supabase video fetch error:', error)
+      .maybeSingle()
+
+    if (!video || error) {
+      console.error('[stream] video not found or error (videos_new only):', error?.message)
       return NextResponse.json({ error: 'Video not found' }, { status: 404 })
     }
 
@@ -43,7 +47,7 @@ export async function GET(
     
     // The key from the database URL should be used as-is since it's already the correct path
     // No need to decode/re-encode as it might cause double-encoding issues
-    console.log('Original S3 key from database:', s3Key)
+    console.log('[stream] s3 key from DB:', s3Key)
     
     // If the key ends with .mp4 and does not exist, try -mp4 variant
     let effectiveKey = s3Key
