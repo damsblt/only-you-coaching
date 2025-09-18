@@ -56,31 +56,12 @@ export async function GET(request: NextRequest) {
     ]
   }
 
-  // First attempt: Prisma with timeout
-  try {
-    // Cast to any to avoid Prisma type resolution issues during serverless builds
-    const prismaQuery = (prisma as any).videosNew.findMany({
-      where,
-      orderBy: { createdAt: 'desc' }
-    })
-
-    const withTimeout = Promise.race([
-      prismaQuery,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('PRISMA_TIMEOUT')), 5000))
-    ])
-
-    const videos = (await withTimeout) as unknown
-    return NextResponse.json(videos)
-  } catch (error) {
-    console.warn('Prisma query failed, falling back to Supabase REST. Error:', error instanceof Error ? error.message : String(error))
-  }
-
-  // Fallback: Supabase REST query (server-side)
+  // Use Supabase REST as the primary path in production/serverless.
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Supabase fallback missing envs: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+      console.error('Supabase envs missing: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
       return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 })
     }
 
@@ -102,33 +83,29 @@ export async function GET(request: NextRequest) {
     }
 
     if (difficulty && difficulty !== 'all') {
-      // difficulty is enum; simple equality
       query = query.eq('difficulty', difficulty)
     }
 
     if (search) {
-      // Use ilike across multiple columns via or() filter
       const ilike = (col: string) => `${col}.ilike.%${search}%`
-      query = query.or(
-        [
-          ilike('title'),
-          ilike('description'),
-          ilike('startingPosition'),
-          ilike('movement'),
-          ilike('theme')
-        ].join(',')
-      )
+      query = query.or([
+        ilike('title'),
+        ilike('description'),
+        ilike('startingPosition'),
+        ilike('movement'),
+        ilike('theme')
+      ].join(','))
     }
 
-    const { data, error } = await query
+    const { data, error } = await query.limit(100)
     if (error) {
-      console.error('Supabase fallback error:', error)
+      console.error('Supabase query error:', error)
       return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 })
     }
 
     return NextResponse.json(data ?? [])
   } catch (error) {
-    console.error('Supabase fallback threw:', error)
+    console.error('Supabase path threw:', error)
     return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 })
   }
 }
