@@ -13,15 +13,16 @@ export async function GET() {
       auth: { persistSession: false }
     })
 
-    const { count, error } = await supabase
+    const { data, count, error } = await supabase
       .from('videos_new')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
+      .range(0, 0)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ table: 'videos_new', count: count ?? 0 })
+    return NextResponse.json({ table: 'videos_new', count: count ?? 0, sample: data?.[0]?.id ?? null })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }

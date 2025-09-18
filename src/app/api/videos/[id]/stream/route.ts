@@ -8,82 +8,39 @@ export async function GET(
 ) {
   try {
     const { id: videoId } = await params
-
     console.log('[stream] incoming id:', videoId)
 
     // Get video from database via Supabase (server-side)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !serviceRoleKey) {
+      console.error('[stream] missing envs:', { supabaseUrl: !!supabaseUrl, serviceRoleKey: !!serviceRoleKey })
       return NextResponse.json({ error: 'Missing Supabase envs' }, { status: 500 })
     }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false }
     })
+
     // Fetch strictly from videos_new (single source of truth)
     const { data: video, error } = await supabase
       .from('videos_new')
-      .select('*')
+      .select('videoUrl')
       .eq('id', videoId)
       .maybeSingle()
 
     if (!video || error) {
-      console.error('[stream] video not found or error (videos_new only):', error?.message)
+      console.error('[stream] video not found or error:', error?.message, 'for id:', videoId)
       return NextResponse.json({ error: 'Video not found' }, { status: 404 })
     }
 
-    if (!video) {
-      return NextResponse.json(
-        { error: 'Video not found' },
-        { status: 404 }
-      )
-    }
+    console.log('[stream] found video URL:', video.videoUrl)
 
-    // Extract S3 key from video URL
-    const videoUrl = new URL(video.videoUrl)
-    // Pathname is percent-encoded; decode to get the exact S3 key string
-    let s3KeyEncoded = videoUrl.pathname.substring(1) // Remove leading slash
-    let s3Key = decodeURIComponent(s3KeyEncoded)
-    
-    // The key from the database URL should be used as-is since it's already the correct path
-    // No need to decode/re-encode as it might cause double-encoding issues
-    console.log('[stream] s3 key from DB:', s3Key)
-    
-    // If the key ends with .mp4 and does not exist, try -mp4 variant
-    let effectiveKey = s3Key
-    if (s3Key.endsWith('.mp4')) {
-      const exists = await objectExistsInS3(s3Key)
-      if (!exists) {
-        const fallbackKey = s3Key.replace(/\.mp4$/, '-mp4')
-        const fallbackExists = await objectExistsInS3(fallbackKey)
-        if (fallbackExists) {
-          effectiveKey = fallbackKey
-        }
-      }
-    } else if (s3Key.endsWith('-mp4')) {
-      // If the key ends with -mp4 and does not exist, try .mp4 variant
-      const exists = await objectExistsInS3(s3Key)
-      if (!exists) {
-        const fallbackKey = s3Key.replace(/-mp4$/, '.mp4')
-        const fallbackExists = await objectExistsInS3(fallbackKey)
-        if (fallbackExists) {
-          effectiveKey = fallbackKey
-        }
-      }
-    }
-
-    // Try to get a signed URL first (for private videos)
-    const signedUrlResult = await getSignedVideoUrl(effectiveKey, 3600) // 1 hour expiry
-    if (signedUrlResult.success) {
-      return NextResponse.redirect(signedUrlResult.url)
-    }
-
-    // Fallback to public URL (must re-encode for URL)
-    const encodedKey = encodeURIComponent(effectiveKey).replace(/%2F/g, '/')
-    const publicUrl = getPublicUrl(encodedKey)
-    return NextResponse.redirect(publicUrl)
+    // Simple approach: redirect directly to the S3 URL from database
+    // The videoUrl should already be a valid S3 URL
+    return NextResponse.redirect(video.videoUrl)
   } catch (error) {
-    console.error('Error streaming video:', error)
+    console.error('[stream] unexpected error:', error)
     return NextResponse.json(
       { error: 'Failed to stream video' },
       { status: 500 }
