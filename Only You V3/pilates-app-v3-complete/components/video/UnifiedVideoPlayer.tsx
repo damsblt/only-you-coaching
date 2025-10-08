@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { X, Heart, Plus, Share2, Info, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatDuration, getDifficultyColor, getDifficultyLabel } from "@/lib/utils"
-import { MediaPlayer, MediaOutlet, MediaCommunitySkin } from '@vidstack/react'
+// import { MediaPlayer, MediaOutlet, MediaCommunitySkin } from '@vidstack/react'
 import { useVideoPlayer } from '@/hooks/useVideoPlayer'
 
 interface Video {
@@ -221,7 +221,7 @@ export default function UnifiedVideoPlayer({
         onClick={handleUserInteraction}
       >
         {videoSrc ? (
-          <MediaPlayer
+          <video
             ref={playerRef}
             src={videoSrc}
             poster={video.thumbnail}
@@ -229,19 +229,17 @@ export default function UnifiedVideoPlayer({
             muted={muted || isMobile}
             playsInline
             onError={handleError}
-            onLoad={handleLoad}
+            onLoadedData={handleLoad}
             onPlay={handlePlay}
             onPause={handlePause}
             className="w-full h-full"
-            viewType="video"
-            storage={isMobile ? 'memory' : 'localStorage'}
             crossOrigin="anonymous"
+            controls
+            preload="metadata"
           >
-            <MediaOutlet>
-              <source src={videoSrc} type="video/mp4" />
-            </MediaOutlet>
-            <MediaCommunitySkin />
-          </MediaPlayer>
+            <source src={videoSrc} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         ) : (
           <div className="w-full h-full bg-gray-900 flex items-center justify-center">
             <div className="text-white text-center">
