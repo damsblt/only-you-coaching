@@ -78,6 +78,13 @@
   },
   "overrides": {
     "@vidstack/react": {
+      "react": "^19.0.0",
+      "@types/react": "^19.0.0"
+    }
+  },
+  "resolutions": {
+    "@vidstack/react": {
+      "react": "^19.0.0",
       "@types/react": "^19.0.0"
     }
   }
