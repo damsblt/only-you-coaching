@@ -78,7 +78,7 @@
   },
   "overrides": {
     "@vidstack/react": {
-      "@types/react": "^18.0.0"
+      "@types/react": "^19.0.0"
     }
   }
 }
